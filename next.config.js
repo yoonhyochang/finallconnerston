@@ -3,7 +3,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/test",
+        source: "/(.*)",
         headers: [
           {
             key: "Cross-Origin-Embedder-Policy",
@@ -19,4 +19,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig
+module.exports = nextConfig;

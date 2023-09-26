@@ -17,6 +17,7 @@ const { ViewportType } = Enums;
 
 // 주요 실행 함수
 async function run(element) {
+
   // Init Cornerstone and related libraries
   // Cornerstone 및 관련 라이브러리 초기화
   await initCornerstone();
@@ -75,7 +76,7 @@ export default function Viewport() {
     <div
       id="cornerstone-element"
       ref={viewer}
-      style={{ width: 1024, height: 1024 }}
+      style={{ width: 500, height: 1024 }}
     >
 
     </div>
