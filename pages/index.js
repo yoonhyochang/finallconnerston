@@ -28,8 +28,8 @@ export default function Home() {
           {/* {<Annotations />} */}
         </div>
       </div>
-        <div className="flex">
           <h1>볼륨 렌더링</h1>
+        <div className="flex">
           <Volume />
         </div>
     </div>

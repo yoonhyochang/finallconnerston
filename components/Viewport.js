@@ -74,9 +74,9 @@ export default function Viewport() {
 
   return (
     <div
-      id="cornerstone-element"
+      id="Viewport"
       ref={viewer}
-      style={{ width: 500, height: 1024 }}
+      style={{ width: 250, height: 500 }}
     >
 
     </div>
