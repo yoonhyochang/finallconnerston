@@ -24,13 +24,13 @@ export default function Home() {
          {/* <ToolsBar /> */}
         <h1>이미지 스택 렌더링</h1>
         <div className="flex">
-           <Viewport />
+          {/*  <Viewport /> */}
           {/* {<Annotations />} */}
         </div>
       </div>
         <div className="flex">
           <h1>볼륨 렌더링</h1>
-          {/* <Volume /> */}
+          <Volume />
         </div>
     </div>
   );
