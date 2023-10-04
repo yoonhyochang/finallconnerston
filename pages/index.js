@@ -9,6 +9,9 @@ const Volume = dynamic(import("../components/Volume"), { ssr: false });
 const ManipulationTools = dynamic(import("../components/ManipulationTools"), {
   ssr: false,
 });
+const SegmentationTools = dynamic(import("../components/SegmentationTools"), {
+  ssr: false,
+});
 
 
 export default function Home() {
@@ -39,8 +42,10 @@ export default function Home() {
       <h1>조작 도구</h1>
       {/* <div className="flex"><ManipulationTools /></div> */}
       <h1>주석 도구</h1>
+      <div className="flex">{/* <AnnotationTools /> */}</div>
+      <h1>분활 도구</h1>
       <div className="flex">
-        <AnnotationTools />
+        <SegmentationTools />
       </div>
     </div>
   );
