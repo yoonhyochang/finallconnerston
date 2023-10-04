@@ -186,15 +186,12 @@ export default function Viewport() {
       init();
     }
   }, []);
-    console.error("volume1 : ",volume1);
-    console.error("volume2 : ", volume2);
-    console.error("volume3 : ", volume3);
+
   return (
     <div id="volume" style={{ display: "flex", flexDirection: "row" }}>
       <div ref={volume1} style={{ width: 250, height: 250 }}></div>
       <div ref={volume2} style={{ width: 250, height: 250 }}></div>
-          <div ref={volume3} style={{ width: 250, height: 250 }}></div>
-          
+      <div ref={volume3} style={{ width: 250, height: 250 }}></div>
     </div>
   );
 }
