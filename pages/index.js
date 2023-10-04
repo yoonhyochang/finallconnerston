@@ -37,7 +37,7 @@ export default function Home() {
       <h1>볼륨 렌더링</h1>
       <div className="flex">{/* <Volume /> */}</div>
       <h1>조작 도구</h1>
-      <div className="flex">{/* <ManipulationTools /> */}</div>
+      {/* <div className="flex"><ManipulationTools /></div> */}
       <h1>주석 도구</h1>
       <div className="flex">
         <AnnotationTools />
