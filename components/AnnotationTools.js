@@ -1,112 +1,103 @@
 // 필요한 모듈과 라이브러리를 임포트
-import { RenderingEngine, Enums } from "@cornerstonejs/core";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  RenderingEngine,
+  Enums,
+  setVolumesForViewports,
+  volumeLoader,
+} from "@cornerstonejs/core";
+import {
+  BidirectionalTool,
+  ToolGroupManager,
+  Enums as csToolsEnums,
+} from "@cornerstonejs/tools";
 import {
   createImageIdsAndCacheMetaData,
   initCornerstone,
 } from "../utils/cornerstone3D";
-import { useEffect, useRef, useState } from "react";
-
-import managerInit from "./managerInit";
 
 // 필요한 Enum 값을 디스트럭처링
 const { ViewportType } = Enums;
 
-// 주요 실행 함수
-// Get Cornerstone imageIds and fetch metadata into RAM
-const imageIds = await createImageIdsAndCacheMetaData({
-  StudyInstanceUID:
-    '1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463',
-  SeriesInstanceUID:
-    '1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561',
-  wadoRsRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb',
-});
+export default function ViewportComponent() {
+  const element1 = useRef(null);
+  const element2 = useRef(null);
 
-const content = document.getElementById('content');
+  useEffect(() => {
+    const run = async () => {
+      // Initialize Cornerstone and other libraries
+      await initCornerstone();
 
-// element for axial view
-const element1 = document.createElement('div');
-element1.style.width = '500px';
-element1.style.height = '500px';
+      // Fetch Cornerstone imageIds and cache metadata
+      const imageIds = await createImageIdsAndCacheMetaData({
+        StudyInstanceUID:
+          "1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463",
+        SeriesInstanceUID:
+          "1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561",
+        wadoRsRoot: "https://d3t6nz73ql33tx.cloudfront.net/dicomweb",
+      });
 
-// element for sagittal view
-const element2 = document.createElement('div');
-element2.style.width = '500px';
-element2.style.height = '500px';
+      // Create a volume in memory
+      const volumeId = `${volumeLoaderScheme}:${volumeName}`; // VolumeId with loader id + volume id
+      const volume = await volumeLoader.createAndCacheVolume(volumeId, {
+        imageIds,
+      });
 
-content.appendChild(element1);
-content.appendChild(element2);
+      // Initialize rendering engine
+      const renderingEngineId = "myRenderingEngine";
+      const renderingEngine = new RenderingEngine(renderingEngineId);
 
-const renderingEngineId = 'myRenderingEngine';
-const renderingEngine = new RenderingEngine(renderingEngineId);
+      // Define the viewport configuration
+      const viewportInput = [
+        {
+          viewportId: "CT_AXIAL",
+          element: element1.current,
+          type: ViewportType.ORTHOGRAPHIC,
+          defaultOptions: {
+            orientation: Enums.OrientationAxis.AXIAL,
+          },
+        },
+        {
+          viewportId: "CT_SAGITTAL",
+          element: element2.current,
+          type: ViewportType.ORTHOGRAPHIC,
+          defaultOptions: {
+            orientation: Enums.OrientationAxis.SAGITTAL,
+          },
+        },
+      ];
 
-// note we need to add the cornerstoneStreamingImageVolume: to
-// use the streaming volume loader
-const volumeId = 'cornerstoneStreamingImageVolume: myVolume';
+      renderingEngine.setViewports(viewportInput);
 
-// Define a volume in memory
-const volume = await volumeLoader.createAndCacheVolume(volumeId, {
-  imageIds,
-});
+      // Add tools
+      addTool(BidirectionalTool);
 
-const viewportId1 = 'CT_AXIAL';
-const viewportId2 = 'CT_SAGITTAL';
+      const toolGroupId = "myToolGroup";
+      const toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
+      toolGroup.addTool(BidirectionalTool.toolName);
 
-const viewportInput = [
-  {
-    viewportId: viewportId1,
-    element: element1,
-    type: ViewportType.ORTHOGRAPHIC,
-    defaultOptions: {
-      orientation: Enums.OrientationAxis.AXIAL,
-    },
-  },
-  {
-    viewportId: viewportId2,
-    element: element2,
-    type: ViewportType.ORTHOGRAPHIC,
-    defaultOptions: {
-      orientation: Enums.OrientationAxis.SAGITTAL,
-    },
-  },
-];
+      toolGroup.addViewport("CT_AXIAL", renderingEngineId);
+      toolGroup.addViewport("CT_SAGITTAL", renderingEngineId);
 
-renderingEngine.setViewports(viewportInput);
+      // ... any other configurations or tool settings
 
-addTool(BidirectionalTool);
+      // Load the volume and render the viewports
+      volume.load();
+      setVolumesForViewports(
+        renderingEngine,
+        [{ volumeId }],
+        ["CT_AXIAL", "CT_SAGITTAL"]
+      );
+      renderingEngine.renderViewports(["CT_AXIAL", "CT_SAGITTAL"]);
+    };
 
-const toolGroupId = 'myToolGroup';
-const toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
-toolGroup.addTool(BidirectionalTool.toolName);
+    run().catch((err) => console.error(err));
+  }, []);
 
-toolGroup.addViewport(viewportId1, renderingEngineId);
-toolGroup.addViewport(viewportId2, renderingEngineId);
-toolGroup.setToolActive(BidirectionalTool.toolName, {
-  bindings: [
-    {
-      mouseButton: csToolsEnums.MouseBindings.Primary, // Left Click
-    },
-  ],
-});
-
-// Set the volume to load
-volume.load();
-
-setVolumesForViewports(
-  renderingEngine,
-  [
-    {
-      volumeId,
-      callback: ({ volumeActor }) => {
-        // set the windowLevel after the volumeActor is created
-        volumeActor
-          .getProperty()
-          .getRGBTransferFunction(0)
-          .setMappingRange(-180, 220);
-      },
-    },
-  ],
-  [viewportId1, viewportId2]
-);
-
-// Render the image
-renderingEngine.renderViewports([viewportId1, viewportId2]);
+  return (
+    <div id="content">
+      <div ref={element1} style={{ width: "250px", height: "250px" }}></div>
+      <div ref={element2} style={{ width: "250px", height: "250px" }}></div>
+    </div>
+  );
+}
