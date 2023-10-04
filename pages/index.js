@@ -1,6 +1,8 @@
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
-const Annotations = dynamic(import('../components/Annotations'), {ssr: false})
+const AnnotationTools = dynamic(import("../components/AnnotationTools"), {
+  ssr: false,
+});
 const Viewport = dynamic(import("../components/Viewport"), { ssr: false });
 const ToolsBar = dynamic(import("../components/ToolsBar"), { ssr: false });
 const Volume = dynamic(import("../components/Volume"), { ssr: false });
@@ -33,12 +35,12 @@ export default function Home() {
         </div>
       </div>
       <h1>볼륨 렌더링</h1>
-      <div className="flex">
-        {/* <Volume /> */}
-      </div>
+      <div className="flex">{/* <Volume /> */}</div>
       <h1>조작 도구</h1>
+      <div className="flex">{/* <ManipulationTools /> */}</div>
+      <h1>주석 도구</h1>
       <div className="flex">
-        <ManipulationTools />
+        <AnnotationTools />
       </div>
     </div>
   );

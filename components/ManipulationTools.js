@@ -7,27 +7,24 @@ import {
   volumeLoader,
 } from "@cornerstonejs/core";
 import {
-  addTool,
+  BidirectionalTool,
   ToolGroupManager,
-  WindowLevelTool,
-  ZoomTool,
   Enums as csToolsEnums,
 } from "@cornerstonejs/tools";
 import {
   createImageIdsAndCacheMetaData,
   initCornerstone,
 } from "../utils/cornerstone3D";
-import managerInit from "./managerInit";
 
 // 필요한 Enum 값을 디스트럭처링
 const { ViewportType } = Enums;
 
 // 주요 실행 함수
-async function run(element) {
+async function run() {
   // Cornerstone 및 관련 라이브러리 초기화
   await initCornerstone();
 
-  // Cornerstone 이미지 ID 및 메타데이터 획득
+  // Get Cornerstone imageIds and fetch metadata into RAM
   const imageIds = await createImageIdsAndCacheMetaData({
     StudyInstanceUID:
       "1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463",
@@ -36,38 +33,64 @@ async function run(element) {
     wadoRsRoot: "https://d3t6nz73ql33tx.cloudfront.net/dicomweb",
   });
 
+  const content = document.getElementById("content");
 
-  // 렌더링 엔진과 뷰포트 설정
+  // element for axial view
+  const element1 = document.createElement("div");
+  element1.style.width = "500px";
+  element1.style.height = "500px";
+
+  // element for sagittal view
+  const element2 = document.createElement("div");
+  element2.style.width = "500px";
+  element2.style.height = "500px";
+
+  content.appendChild(element1);
+  content.appendChild(element2);
+
   const renderingEngineId = "myRenderingEngine";
-  const viewportId = "CT_AXIAL_STACK";
   const renderingEngine = new RenderingEngine(renderingEngineId);
 
-  const viewportInput = {
-    viewportId,
-    element,
-    type: ViewportType.STACK,
-  };
+  // note we need to add the cornerstoneStreamingImageVolume: to
+  // use the streaming volume loader
+  const volumeId = "cornerstoneStreamingImageVolume: myVolume";
 
-  // 렌더링 엔진 초기화 및 뷰포트 획득
-  renderingEngine.enableElement(viewportInput);
+  // Define a volume in memory
+  const volume = await volumeLoader.createAndCacheVolume(volumeId, {
+    imageIds,
+  });
 
-  const viewport = renderingEngine.getViewport(viewportId);
+  const viewportId1 = "CT_AXIAL";
+  const viewportId2 = "CT_SAGITTAL";
 
-  viewport.setStack(imageIds);
+  const viewportInput = [
+    {
+      viewportId: viewportId1,
+      element: element1,
+      type: ViewportType.ORTHOGRAPHIC,
+      defaultOptions: {
+        orientation: Enums.OrientationAxis.AXIAL,
+      },
+    },
+    {
+      viewportId: viewportId2,
+      element: element2,
+      type: ViewportType.ORTHOGRAPHIC,
+      defaultOptions: {
+        orientation: Enums.OrientationAxis.SAGITTAL,
+      },
+    },
+  ];
 
-  viewport.render();
+  renderingEngine.setViewports(viewportInput);
 
   const toolGroupId = "myToolGroup";
   const toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
+  toolGroup.addTool(BidirectionalTool.toolName);
 
-  // Add tools to the ToolGroup
-  toolGroup.addTool(ZoomTool.toolName);
-  toolGroup.addTool(WindowLevelTool.toolName);
-
-  toolGroup.addViewport(viewportId, renderingEngineId);
-
-  // Set the windowLevel tool to be active when the mouse left button is pressed
-  toolGroup.setToolActive(WindowLevelTool.toolName, {
+  toolGroup.addViewport(viewportId1, renderingEngineId);
+  toolGroup.addViewport(viewportId2, renderingEngineId);
+  toolGroup.setToolActive(BidirectionalTool.toolName, {
     bindings: [
       {
         mouseButton: csToolsEnums.MouseBindings.Primary, // Left Click
@@ -75,50 +98,28 @@ async function run(element) {
     ],
   });
 
-  toolGroup.setToolActive(ZoomTool.toolName, {
-    bindings: [
+  // Set the volume to load
+  volume.load();
+
+  setVolumesForViewports(
+    renderingEngine,
+    [
       {
-        mouseButton: csToolsEnums.MouseBindings.Secondary, // Right Click
+        volumeId,
+        callback: ({ volumeActor }) => {
+          // set the windowLevel after the volumeActor is created
+          volumeActor
+            .getProperty()
+            .getRGBTransferFunction(0)
+            .setMappingRange(-180, 220);
+        },
       },
     ],
-  });
+    [viewportId1, viewportId2]
+  );
+
+  // Render the image
+  renderingEngine.renderViewports([viewportId1, viewportId2]);
 }
 
-// 뷰포트 컴포넌트
-export default function Viewport() {
-  // 참조와 상태 설정
-  const viewer = useRef(null);
-  const [managers, setManagers] = useState(null);
-  const defaultConfig = {
-    extensions: [],
-  };
-
-  // useEffect 안에서 별도의 async 함수를 선언
-  useEffect(() => {
-    const init = async () => {
-      // await을 사용해 비동기 함수 호출
-      await run(viewer.current);
-
-      // 매니저 초기화
-      try {
-        const managerConfig = await managerInit(defaultConfig, [], []);
-        setManagers(managerConfig);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    // window 객체가 정의되어 있다면 init 함수 호출
-    if (typeof window !== "undefined") {
-      init();
-    }
-  }, []);
-
-return (
-  <div
-    id="content"
-    style={{ width: "250px", height: "250px" }}
-    ref={viewer}
-  ></div>
-);
-}
+run();
